@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>漏洞知识图谱系统</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <div id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">正在加载知识图谱...</div>
+    </div>
+
+    <div class="header">
+        <div class="logo">🔒 漏洞知识图谱</div>
+        <div class="nav-tabs">
+            <div class="nav-tab active" data-view="graph">图谱浏览</div>
+            <div class="nav-tab" data-view="stats">统计分析</div>
+            <div class="nav-tab" data-view="about">关于系统</div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div id="graph-view" class="view-container">
+            <div class="sidebar">
+                <button id="sidebar-toggle" class="sidebar-toggle">◀</button>
+                
+                <div class="sidebar-section">
+                    <div class="section-title">🔍 智能搜索</div>
+                    <input type="text" class="search-box" id="search-input" placeholder="输入漏洞名称...">
+                    <button class="search-btn" id="search-btn">搜索</button>
+                    <div class="search-result" id="search-result"></div>
+                    <div class="search-results-list" id="search-results-list"></div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="section-title">
+                        🔽 节点筛选
+                        <div class="filter-actions">
+                            <button id="select-all" class="small-btn">全选</button>
+                            <button id="select-none" class="small-btn">取消</button>
+                        </div>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" class="filter-checkbox" value="Vulnerability" checked id="filter-vuln">
+                        <label for="filter-vuln">漏洞 (Vulnerability)</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" class="filter-checkbox" value="Product" checked id="filter-product">
+                        <label for="filter-product">产品 (Product)</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" class="filter-checkbox" value="CVE" checked id="filter-cve">
+                        <label for="filter-cve">CVE</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" class="filter-checkbox" value="Vendor" checked id="filter-vendor">
+                        <label for="filter-vendor">厂商 (Vendor)</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" class="filter-checkbox" value="VulnType" checked id="filter-type">
+                        <label for="filter-type">漏洞类型 (VulnType)</label>
+                    </div>
+                    <div class="filter-item">
+                        <input type="checkbox" class="filter-checkbox" value="Severity" checked id="filter-severity">
+                        <label for="filter-severity">严重程度 (Severity)</label>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="section-title">📊 统计信息</div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="node-count">0</div>
+                            <div class="stat-label">节点总数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="link-count">0</div>
+                            <div class="stat-label">关系总数</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="section-title">🎨 图例</div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff6b6b;"></div>
+                        <span>漏洞</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4ecdc4;"></div>
+                        <span>产品</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ffe66d;"></div>
+                        <span>CVE</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #1a535c;"></div>
+                        <span>厂商</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff9f1c;"></div>
+                        <span>漏洞类型</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #9b5de5;"></div>
+                        <span>严重程度</span>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="section-title">ℹ️ 节点详情</div>
+                    <div class="node-details" id="node-details">
+                        <p class="empty-text">点击节点查看详情</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="graph-area">
+                <div class="toolbar">
+                    <button class="tool-btn" id="zoom-in" title="放大 (+)">+</button>
+                    <button class="tool-btn" id="zoom-out" title="缩小 (-)">−</button>
+                    <button class="tool-btn" id="zoom-fit" title="适应屏幕 (R)">⛶</button>
+                    <div class="toolbar-divider"></div>
+                    <button class="tool-btn" id="reset-highlight" title="重置高亮 (Esc)">✕</button>
+                </div>
+                <div id="graph-container"></div>
+            </div>
+        </div>
+
+        <div id="stats-view" class="view-container" style="display: none;">
+            <div class="stats-page">
+                <h2>📊 统计分析</h2>
+                <div class="stats-kpi-grid" id="stats-kpi"></div>
+                <div class="stats-charts-grid">
+                    <div class="chart-card">
+                        <h3>节点类型分布</h3>
+                        <div id="chart-nodes" class="chart-container"></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>关系类型分布</h3>
+                        <div id="chart-links" class="chart-container"></div>
+                    </div>
+                    <div class="chart-card wide">
+                        <h3>节点度数 TOP10</h3>
+                        <div id="chart-degree" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="about-view" class="view-container" style="display: none;">
+            <div class="about-page">
+                <h2>🔒 漏洞知识图谱系统</h2>
+                <div class="about-content">
+                    <p>基于 Neo4j 的漏洞知识图谱可视化系统</p>
+                    <p>支持漏洞、产品、厂商、CVE、漏洞类型、严重程度等多维度关联分析</p>
+                    
+                    <h3>🎯 功能特性</h3>
+                    <ul>
+                        <li>🔍 智能搜索：支持节点名称、ID、类型模糊搜索，搜索后自动聚焦高亮</li>
+                        <li>🎨 多类型节点：漏洞、产品、厂商、CVE、漏洞类型、严重程度</li>
+                        <li>🔗 关系可视化：支持关系类型标签展示，悬停查看详情</li>
+                        <li>📊 统计分析：节点分布饼图、关系统计柱状图、度数排名</li>
+                        <li>⌨️ 快捷键支持：Ctrl+F 搜索、R 重置视图、Esc 取消高亮</li>
+                    </ul>
+                    
+                    <h3>📈 数据规模</h3>
+                    <p id="about-stats">加载中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="node-tooltip" class="node-tooltip"></div>
+    <div id="link-tooltip" class="link-tooltip"></div>
+
+    <div id="context-menu" class="context-menu">
+        <div class="ctx-header">
+            <span id="ctx-node-name">节点</span>
+        </div>
+        <div class="ctx-item" id="ctx-details">🔍 查看详情</div>
+        <div class="ctx-item" id="ctx-expand">🔮 扩展关联</div>
+        <div class="ctx-item" id="ctx-focus">🎯 聚焦节点</div>
+        <div class="ctx-divider"></div>
+        <div class="ctx-item" id="ctx-hide">👁️‍🗨️ 隐藏节点</div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
